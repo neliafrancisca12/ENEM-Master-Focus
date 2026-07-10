@@ -1,0 +1,8 @@
+{
+  "name": "Cronograma e Simulados ENEM",
+  "description": "Aplicativo para gerenciamento de estudos do ENEM baseado em ciclos de 90 minutos, simulados aos sábados, anotações por área e correção inteligente com Inteligência Artificial.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
