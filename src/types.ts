@@ -79,3 +79,13 @@ export interface UserProgress {
   essaysSubmitted: number;
   bestEssayScore: number; // 0 to 1000
 }
+
+export type CronogramaOption = "Aulas" | "Exercícios" | "Provas Anteriores" | "Redação";
+
+export interface CronogramaDay {
+  blocks: (CronogramaOption | "")[];
+}
+
+export interface Cronograma {
+  [day: string]: CronogramaDay;
+}

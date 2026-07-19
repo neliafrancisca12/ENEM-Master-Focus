@@ -22,11 +22,11 @@ import {
   BookMarked,
   Sliders,
   Check,
-  ChevronLeft
+  ChevronLeft,
+  Target
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import Timer from "./components/Timer";
-import { EnemArea, StudyNote, Question, SimuladoState, EssayCorrection, StudySessionLog, Badge, MentorFeedback, UserProgress } from "./types";
+import { EnemArea, StudyNote, Question, SimuladoState, EssayCorrection, StudySessionLog, Badge, MentorFeedback, UserProgress, Cronograma, CronogramaOption, CronogramaDay } from "./types";
 import { DEFAULT_QUESTIONS, ESSAY_THEMES } from "./data/defaultQuestions";
 
 export default function App() {
@@ -45,9 +45,35 @@ export default function App() {
     ];
   });
 
-  const [activeTab, setActiveTab] = useState<"foco" | "simulados" | "anotacoes" | "redacao" | "progresso">("foco");
+  const [activeTab, setActiveTab] = useState<"simulados" | "anotacoes" | "cronograma" | "metas">("cronograma");
   const [selectedAreaForNotes, setSelectedAreaForNotes] = useState<EnemArea>(EnemArea.LINGUAGENS);
   const [noteInput, setNoteInput] = useState("");
+  const [metas, setMetas] = useState<{text: string, completed: boolean}[]>(() => {
+    const saved = localStorage.getItem("enem_metas");
+    return saved ? JSON.parse(saved) : [
+      { text: "Ter 5 redações avaliadas com nota 1000 pelo chatgpt.", completed: false },
+      { text: "Corrigir 12 provas do ENEM.", completed: false },
+      { text: "Fazer todos os simulados do curso ENEM gratuito.", completed: false }
+    ];
+  });
+  
+  useEffect(() => {
+    localStorage.setItem("enem_metas", JSON.stringify(metas));
+  }, [metas]);
+  const [cronograma, setCronograma] = useState<Cronograma>(() => {
+    const saved = localStorage.getItem("enem_cronograma");
+    if (saved) return JSON.parse(saved);
+    const days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"];
+    const initial: Cronograma = {};
+    days.forEach(day => {
+      initial[day] = { blocks: ["", "", "", ""] };
+    });
+    return initial;
+  });
+  
+  useEffect(() => {
+    localStorage.setItem("enem_cronograma", JSON.stringify(cronograma));
+  }, [cronograma]);
 
   // --- Daily Timer & Session Tracker States ---
   const [dailySessionsCompleted, setDailySessionsCompleted] = useState<number>(() => {
@@ -168,8 +194,8 @@ export default function App() {
     setQuizScore(0);
     setIsQuizCompleted(false);
 
-    // Ensure we go to Foco Tab to solve the revision quiz
-    setActiveTab("foco");
+    // Ensure we go to Anotacoes Tab to solve the revision quiz
+    setActiveTab("anotacoes");
 
     const notesForArea = notes.find((n) => n.area === area)?.content || "";
 
@@ -578,23 +604,19 @@ export default function App() {
               Áreas de Trabalho
             </h2>
             <ul className="space-y-1.5">
+
               <li>
                 <button
-                  onClick={() => setActiveTab("foco")}
+                  onClick={() => setActiveTab("metas")}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === "foco"
+                    activeTab === "metas"
                       ? "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <Clock className="w-4 h-4" /> Sala de Foco (90m)
+                    <Target className="w-4 h-4" /> Metas do Curso
                   </span>
-                  {dailySessionsCompleted > 0 && (
-                    <span className="bg-indigo-100 text-indigo-800 text-[10px] px-1.5 py-0.5 rounded-full">
-                      {dailySessionsCompleted}/5
-                    </span>
-                  )}
                 </button>
               </li>
               <li>
@@ -633,18 +655,15 @@ export default function App() {
               </li>
               <li>
                 <button
-                  onClick={() => setActiveTab("redacao")}
+                  onClick={() => setActiveTab("cronograma")}
                   className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    activeTab === "redacao"
+                    activeTab === "cronograma"
                       ? "bg-indigo-50 text-indigo-700 border-l-4 border-indigo-600"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
                   <span className="flex items-center gap-2.5">
-                    <PenTool className="w-4 h-4" /> Redação Nota 1000
-                  </span>
-                  <span className="bg-rose-50 text-rose-600 text-[10px] px-1.5 py-0.5 rounded-full font-bold">
-                    IA
+                    <Calendar className="w-4 h-4" /> Cronograma de Estudos
                   </span>
                 </button>
               </li>
@@ -697,216 +716,41 @@ export default function App() {
         {/* MIDDLE / MAIN SECTION: Dynamic Workspace Panels */}
         <main className="flex-1 flex flex-col gap-6" id="app-workspace-canvas">
           
-          {/* TAB 1: FOCUS & REVISION QUIZ */}
-          {activeTab === "foco" && (
-            <div className="flex flex-col gap-6 animate-fadeIn">
-              
-              {/* Dynamic Timer Control block */}
-              <Timer
-                onSessionComplete={handleSessionComplete}
-                dailySessionsCompleted={dailySessionsCompleted}
-                setDailySessionsCompleted={setDailySessionsCompleted}
-                totalStudyTime={totalStudyTime}
-                setTotalStudyTime={setTotalStudyTime}
-              />
 
-              {/* POST-SESSION REVISION CHALLENGE VIEW */}
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col gap-5">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-4">
-                  <div>
-                    <h2 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-indigo-600 animate-pulse" />
-                      Atividades Pós-Sessão: Fixação Inteligente
-                    </h2>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Geradas instantaneamente por Inteligência Artificial baseado na sua última área de foco.
-                    </p>
+
+
+          {/* TAB: METAS */}
+          {activeTab === "metas" && (
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 flex flex-col gap-6 animate-fadeIn">
+              <h2 className="text-lg font-black text-slate-800">Minhas Metas</h2>
+              <div className="flex flex-col gap-3">
+                {metas.map((meta, i) => (
+                  <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
+                    <input type="checkbox" checked={meta.completed} onChange={() => {
+                        const newMetas = [...metas];
+                        newMetas[i].completed = !newMetas[i].completed;
+                        setMetas(newMetas);
+                    }} className="w-4 h-4 text-indigo-600 rounded" />
+                    <span className={`text-sm ${meta.completed ? "line-through text-slate-400" : "text-slate-700"}`}>
+                        {meta.text}
+                    </span>
                   </div>
-
-                  {/* Manual testing or trigger buttons */}
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => handleSessionComplete(EnemArea.MATEMATICA, "Funções Afins")}
-                      className="bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 transition-all"
-                    >
-                      Gerar Atividade Teste (Matemática)
-                    </button>
-                    <button
-                      onClick={() => handleSessionComplete(EnemArea.NATUREZA, "Ecologia e Impactos")}
-                      className="bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 text-[10px] font-bold px-2.5 py-1.5 rounded-lg border border-slate-200 transition-all"
-                    >
-                      Gerar Atividade Teste (Natureza)
-                    </button>
-                  </div>
-                </div>
-
-                {isGeneratingQuiz && (
-                  <div className="py-12 flex flex-col items-center justify-center text-center">
-                    <div className="w-12 h-12 rounded-full border-4 border-indigo-600 border-t-transparent animate-spin mb-4"></div>
-                    <p className="text-sm font-bold text-slate-700">O Professor IA está elaborando sua atividade...</p>
-                    <p className="text-xs text-slate-400 mt-1">Lendo suas anotações e calibrando os distratores oficiais do ENEM.</p>
-                  </div>
-                )}
-
-                {!isGeneratingQuiz && !activeQuizQuestions && (
-                  <div className="py-8 text-center bg-slate-50 rounded-xl border border-dashed border-slate-200 p-6">
-                    <HelpCircle className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-                    <p className="text-sm font-bold text-slate-700">Nenhuma revisão ativa pendente</p>
-                    <p className="text-xs text-slate-500 max-w-md mx-auto mt-1">
-                      Termine um ciclo de 90 minutos usando o cronômetro acima ou clique em um dos botões de teste rápido para gerar questões personalizadas com Inteligência Artificial.
-                    </p>
-                  </div>
-                )}
-
-                {!isGeneratingQuiz && activeQuizQuestions && !isQuizCompleted && (
-                  <div className="flex flex-col gap-5">
-                    {/* Progress tracking inside quiz */}
-                    <div className="flex justify-between items-center bg-indigo-50/50 p-3 rounded-xl border border-indigo-100/50">
-                      <div className="flex items-center gap-2">
-                        <span className="bg-indigo-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                          {quizArea}
-                        </span>
-                        {quizTopic && (
-                          <span className="text-xs font-bold text-slate-600">
-                            Tópico: {quizTopic}
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs font-bold text-indigo-700">
-                        Questão {currentQuizIdx + 1} de {activeQuizQuestions.length}
-                      </span>
-                    </div>
-
-                    {/* Question Content */}
-                    <div className="flex flex-col gap-4">
-                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-150 text-xs sm:text-sm text-slate-700 italic leading-relaxed font-serif">
-                        {activeQuizQuestions[currentQuizIdx].contextText}
-                      </div>
-                      <h3 className="text-sm sm:text-base font-extrabold text-slate-800 leading-snug">
-                        {activeQuizQuestions[currentQuizIdx].questionText}
-                      </h3>
-                    </div>
-
-                    {/* Options list */}
-                    <div className="flex flex-col gap-2">
-                      {activeQuizQuestions[currentQuizIdx].options.map((option, idx) => {
-                        const letter = ["A", "B", "C", "D", "E"][idx];
-                        const isSelected = selectedQuizAnswer === idx;
-                        const isCorrect = idx === activeQuizQuestions[currentQuizIdx].correctOptionIndex;
-                        const hasAnswered = selectedQuizAnswer !== null;
-
-                        let btnStyle = "bg-white hover:bg-slate-50 border-slate-200 text-slate-700";
-                        if (isSelected) {
-                          btnStyle = isCorrect
-                            ? "bg-emerald-50 border-emerald-500 text-emerald-900 shadow-sm"
-                            : "bg-rose-50 border-rose-500 text-rose-900 shadow-sm";
-                        } else if (hasAnswered && isCorrect) {
-                          btnStyle = "bg-emerald-50 border-emerald-500 text-emerald-900 font-bold";
-                        }
-
-                        return (
-                          <button
-                            key={idx}
-                            onClick={() => handleSelectQuizAnswer(idx)}
-                            disabled={hasAnswered}
-                            className={`w-full text-left p-3.5 rounded-xl border transition-all text-xs sm:text-sm flex items-start gap-3 ${btnStyle}`}
-                          >
-                            <span className={`w-6 h-6 shrink-0 rounded-lg flex items-center justify-center font-bold text-xs ${
-                              isSelected
-                                ? isCorrect
-                                  ? "bg-emerald-500 text-white"
-                                  : "bg-rose-500 text-white"
-                                : hasAnswered && isCorrect
-                                ? "bg-emerald-500 text-white"
-                                : "bg-slate-100 text-slate-500"
-                            }`}>
-                              {letter}
-                            </span>
-                            <span className="flex-grow">{option}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Detailed AI Explanation */}
-                    {showQuizExplanation && (
-                      <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs sm:text-sm text-indigo-950 mt-2">
-                        <p className="font-extrabold flex items-center gap-1.5 text-indigo-900 mb-1">
-                          <BrainCircuit className="w-4 h-4" /> Gabarito Comentado (Resolução):
-                        </p>
-                        <p className="leading-relaxed">
-                          {activeQuizQuestions[currentQuizIdx].explanation}
-                        </p>
-                        <button
-                          onClick={handleNextQuizQuestion}
-                          className="mt-4 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg text-xs transition-all flex items-center justify-center gap-1 shadow-sm"
-                        >
-                          Próxima Questão <ChevronRight className="w-4 h-4" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {!isGeneratingQuiz && activeQuizQuestions && isQuizCompleted && (
-                  <div className="p-6 text-center bg-indigo-50/50 rounded-xl border border-indigo-150 flex flex-col items-center justify-center">
-                    <div className="w-14 h-14 bg-indigo-100 text-indigo-700 rounded-full flex items-center justify-center text-2xl mb-3 shadow-inner">
-                      🎉
-                    </div>
-                    <h3 className="text-base font-extrabold text-indigo-900">Atividade Concluída com Sucesso!</h3>
-                    <p className="text-xs text-indigo-700 max-w-sm mt-1">
-                      Você acertou <strong>{quizScore} de {activeQuizQuestions.length}</strong> questões propostas. Seus conceitos estão sendo consolidados.
-                    </p>
-
-                    <div className="flex gap-3 mt-5">
-                      <button
-                        onClick={() => setActiveQuizQuestions(null)}
-                        className="bg-white hover:bg-slate-50 text-slate-600 font-bold text-xs py-2 px-4 rounded-xl border border-slate-200 transition-all"
-                      >
-                        Fechar Janela
-                      </button>
-                      <button
-                        onClick={() => handleSessionComplete(quizArea, quizTopic)}
-                        className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs py-2 px-4 rounded-xl transition-all shadow-sm"
-                      >
-                        Tentar Novas Questões
-                      </button>
-                    </div>
-                  </div>
-                )}
+                ))}
               </div>
             </div>
           )}
 
-          {/* TAB 2: SATURDAY MOCK EXAMS (SIMULADOS) */}
+          {/* TAB 2: SIMULADOS FEITOS */}
           {activeTab === "simulados" && (
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 flex flex-col items-center text-center gap-6 animate-fadeIn" id="simulado-aviso-panel">
-              <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 animate-bounce">
-                <AlertCircle className="w-8 h-8" />
+            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 flex flex-col gap-6 animate-fadeIn">
+              <h2 className="text-lg font-black text-slate-800">Simulados Feitos</h2>
+              <div className="flex flex-col gap-3">
+                <input type="text" placeholder="Nome do Simulado..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm" />
+                <button className="bg-indigo-600 text-white p-3 rounded-xl font-bold text-sm">Adicionar Simulado</button>
               </div>
-              <div className="max-w-md">
-                <h2 className="text-xl font-black text-slate-800">
-                  Atenção: Hoje é Sábado! Dia de Simulado Geral 📝
-                </h2>
-                <p className="text-sm text-slate-600 mt-3 leading-relaxed">
-                  Sábado é o dia oficial reservado para testar seus conhecimentos e treinar sua resistência física e mental sob as condições reais de prova do ENEM.
-                </p>
-              </div>
-              <div className="w-full max-w-lg bg-amber-50 border border-amber-200 rounded-2xl p-5 text-left flex gap-4">
-                <Calendar className="w-6 h-6 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
-                <div>
-                  <h4 className="text-xs font-bold text-amber-900 uppercase tracking-wide">Instruções Práticas para o Simulado</h4>
-                  <ul className="text-xs text-amber-805 mt-2 space-y-2 list-disc list-inside font-medium leading-relaxed">
-                    <li>Escolha um ambiente totalmente silencioso e livre de interrupções.</li>
-                    <li>Deixe o celular desligado ou longe do seu alcance para focar totalmente.</li>
-                    <li>Separe garrafa de água e um pequeno lanche para simular o cansaço do exame real.</li>
-                    <li>Mantenha um cronômetro rigoroso e treine o preenchimento do gabarito.</li>
-                  </ul>
-                </div>
-              </div>
-              <p className="text-[11px] text-slate-400 font-medium">
-                Seu cronograma de estudos foi ajustado automaticamente. Bom desempenho!
-              </p>
+              <ul className="text-sm text-slate-600 space-y-2">
+                <li>Simulado 1 - 10/07</li>
+              </ul>
             </div>
           )}
 
@@ -992,99 +836,59 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 4: REDAÇÃO NOTA 1000 GRADER */}
-          {activeTab === "redacao" && (
+          {/* TAB 4: CRONOGRAMA DE ESTUDOS */}
+          {activeTab === "cronograma" && (
             <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 flex flex-col gap-6 animate-fadeIn">
-              <div className="border-b border-slate-100 pb-4">
-                <h2 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                  <PenTool className="w-5 h-5 text-indigo-600" />
-                  Corretor Oficial de Redação ENEM Inteligente
-                </h2>
-                <p className="text-xs text-slate-500 mt-1">
-                  Escreva e envie redações baseadas em temas reais do ENEM para receber correções detalhadas divididas pelas 5 competências formais do edital do INEP.
-                </p>
+              <h2 className="text-lg font-black text-slate-800">Cronograma de Estudos Semanal</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left text-slate-600">
+                  <thead className="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                      <th className="p-3">Dia</th>
+                      <th className="p-3">Bloco 1</th>
+                      <th className="p-3">Bloco 2</th>
+                      <th className="p-3">Bloco 3</th>
+                      <th className="p-3">Bloco 4</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(Object.entries(cronograma) as [string, CronogramaDay][]).map(([day, { blocks }]) => (
+                      <tr key={day} className="border-b border-slate-100">
+                        <td className="p-3 font-bold text-slate-800">{day}</td>
+                        {blocks.map((block, i) => (
+                          <td key={i} className="p-1">
+                            <select
+                              className="w-full p-2 bg-slate-50 border border-slate-200 rounded-lg text-xs"
+                              value={block}
+                              onChange={(e) => {
+                                const newBlocks = [...blocks];
+                                newBlocks[i] = e.target.value as CronogramaOption | "";
+                                setCronograma(prev => ({ ...prev, [day]: { blocks: newBlocks } }));
+                              }}
+                            >
+                              <option value="">Selecionar...</option>
+                              <option value="Aulas">Aulas</option>
+                              <option value="Exercícios">Exercícios</option>
+                              <option value="Provas Anteriores">Provas Anteriores</option>
+                              <option value="Redação">Redação</option>
+                            </select>
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
-
-              {/* Theme Selector */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                  Selecione uma Proposta / Tema de Redação:
-                </label>
-                <select
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-2 px-3 text-xs sm:text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
-                  value={selectedTheme}
-                  onChange={(e) => setSelectedTheme(e.target.value)}
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    localStorage.setItem("enem_cronograma", JSON.stringify(cronograma));
+                    alert("Cronograma salvo com sucesso!");
+                  }}
+                  className="bg-indigo-600 text-white p-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition-all"
                 >
-                  {ESSAY_THEMES.map((theme, i) => (
-                    <option key={i} value={theme}>
-                      {theme}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Essay Text Area */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex justify-between items-center">
-                  <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                    Seu Texto Dissertativo-Argumentativo:
-                  </label>
-                  <span className={`text-[10px] font-mono font-bold ${
-                    essayText.length < 500 ? "text-slate-400" : essayText.length > 3000 ? "text-rose-500" : "text-emerald-600"
-                  }`}>
-                    {essayText.length} caracteres (Ideal: 800 - 2500)
-                  </span>
-                </div>
-                <textarea
-                  placeholder="Escreva sua introdução, desenvolvimento 1, desenvolvimento 2 e proposta de intervenção de acordo com o padrão do ENEM..."
-                  className="w-full h-80 p-4 bg-slate-50 border border-slate-200 rounded-2xl text-xs sm:text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 transition-all font-mono leading-relaxed"
-                  value={essayText}
-                  onChange={(e) => setEssayText(e.target.value)}
-                />
-              </div>
-
-              {/* ChatGPT Prompt & Link Card */}
-              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-5 flex flex-col gap-4">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-bold text-sm shadow-sm shrink-0">
-                      GPT
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-extrabold text-emerald-950">Correção Profissional no ChatGPT</h3>
-                      <p className="text-xs text-emerald-700 font-medium">Envie seu texto para o ChatGPT para receber uma correção detalhada e pontuação baseada no ENEM.</p>
-                    </div>
-                  </div>
-                  <a
-                    href="https://chatgpt.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold py-2.5 px-5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 shrink-0"
-                  >
-                    Ir para o ChatGPT
-                  </a>
-                </div>
-
-                <div className="bg-white border border-emerald-150 rounded-xl p-4 flex flex-col gap-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-emerald-800 uppercase tracking-wide">
-                      Prompt Pronto para Copiar:
-                    </span>
-                    <button
-                      onClick={() => {
-                        const text = `Corrija minha redação do ENEM sobre o tema "${selectedTheme}". Avalie e dê notas detalhadas de 0 a 200 para cada uma das 5 competências do edital do INEP, justifique cada nota e sugira melhorias práticas. Aqui está o meu texto:\n\n${essayText || "[Por favor, escreva o seu texto primeiro no editor acima]"}`;
-                        navigator.clipboard.writeText(text);
-                        showToast("Prompt copiado com sucesso para a área de transferência!", "success");
-                      }}
-                      className="text-indigo-600 hover:text-indigo-800 text-[11px] font-extrabold transition-all"
-                    >
-                      Copiar Prompt
-                    </button>
-                  </div>
-                  <p className="bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs text-slate-600 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-line font-mono">
-                    {`Corrija minha redação do ENEM sobre o tema "${selectedTheme}". Avalie e dê notas detalhadas de 0 a 200 para cada uma das 5 competências do edital do INEP, justifique cada nota e sugira melhorias práticas. Aqui está o meu texto:\n\n${essayText || "[Escreva seu texto no campo acima para que ele apareça aqui]"}`}
-                  </p>
-                </div>
+                  Salvar Cronograma
+                </button>
               </div>
             </div>
           )}
