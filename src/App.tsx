@@ -50,11 +50,25 @@ export default function App() {
   const [noteInput, setNoteInput] = useState("");
   const [metas, setMetas] = useState<{text: string, completed: boolean}[]>(() => {
     const saved = localStorage.getItem("enem_metas");
-    return saved ? JSON.parse(saved) : [
+    const defaultMetas = [
       { text: "Ter 5 redações avaliadas com nota 1000 pelo chatgpt.", completed: false },
       { text: "Corrigir 12 provas do ENEM.", completed: false },
-      { text: "Fazer todos os simulados do curso ENEM gratuito.", completed: false }
+      { text: "Fazer todos os simulados do curso ENEM gratuito.", completed: false },
+      { text: "Ficar craque em pirâmides.", completed: false }
     ];
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        const hasPyramid = parsed.some((m: any) => m.text.toLowerCase().includes("pirâmide"));
+        if (!hasPyramid) {
+          parsed.push({ text: "Ficar craque em pirâmides.", completed: false });
+        }
+        return parsed;
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return defaultMetas;
   });
   
   useEffect(() => {
@@ -723,17 +737,59 @@ export default function App() {
           {activeTab === "metas" && (
             <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 flex flex-col gap-6 animate-fadeIn">
               <h2 className="text-lg font-black text-slate-800">Minhas Metas</h2>
+              
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  id="new-meta-input"
+                  placeholder="Adicionar nova meta de estudos..."
+                  className="flex-grow p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const target = e.currentTarget;
+                      if (target.value.trim()) {
+                        setMetas([...metas, { text: target.value.trim(), completed: false }]);
+                        target.value = "";
+                      }
+                    }
+                  }}
+                />
+                <button
+                  onClick={() => {
+                    const input = document.getElementById("new-meta-input") as HTMLInputElement;
+                    if (input && input.value.trim()) {
+                      setMetas([...metas, { text: input.value.trim(), completed: false }]);
+                      input.value = "";
+                    }
+                  }}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 rounded-xl font-bold text-xs transition-all shadow-sm"
+                >
+                  Adicionar
+                </button>
+              </div>
+
               <div className="flex flex-col gap-3">
                 {metas.map((meta, i) => (
-                  <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-200">
-                    <input type="checkbox" checked={meta.completed} onChange={() => {
-                        const newMetas = [...metas];
-                        newMetas[i].completed = !newMetas[i].completed;
+                  <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-200 hover:border-slate-300 transition-all group">
+                    <div className="flex items-center gap-3 flex-1">
+                      <input type="checkbox" checked={meta.completed} onChange={() => {
+                          const newMetas = [...metas];
+                          newMetas[i].completed = !newMetas[i].completed;
+                          setMetas(newMetas);
+                      }} className="w-4 h-4 text-indigo-600 rounded cursor-pointer accent-indigo-600" />
+                      <span className={`text-sm select-none ${meta.completed ? "line-through text-slate-400" : "text-slate-700"}`}>
+                          {meta.text}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        const newMetas = metas.filter((_, idx) => idx !== i);
                         setMetas(newMetas);
-                    }} className="w-4 h-4 text-indigo-600 rounded" />
-                    <span className={`text-sm ${meta.completed ? "line-through text-slate-400" : "text-slate-700"}`}>
-                        {meta.text}
-                    </span>
+                      }}
+                      className="text-slate-400 hover:text-rose-600 text-xs font-bold px-2 py-1 opacity-0 group-hover:opacity-100 transition-all"
+                    >
+                      Remover
+                    </button>
                   </div>
                 ))}
               </div>
