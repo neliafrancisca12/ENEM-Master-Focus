@@ -49,30 +49,23 @@ export default function App() {
   const [selectedAreaForNotes, setSelectedAreaForNotes] = useState<EnemArea>(EnemArea.LINGUAGENS);
   const [noteInput, setNoteInput] = useState("");
   const [metas, setMetas] = useState<{text: string, completed: boolean}[]>(() => {
-    const saved = localStorage.getItem("enem_metas");
-    const defaultMetas = [
-      { text: "Ter 5 redações avaliadas com nota 1000 pelo chatgpt.", completed: false },
-      { text: "Corrigir 12 provas do ENEM.", completed: false },
-      { text: "Fazer todos os simulados do curso ENEM gratuito.", completed: false },
-      { text: "Ficar craque em pirâmides.", completed: false }
-    ];
+    const saved = localStorage.getItem("enem_metas_v2");
     if (saved) {
       try {
-        const parsed = JSON.parse(saved);
-        const hasPyramid = parsed.some((m: any) => m.text.toLowerCase().includes("pirâmide"));
-        if (!hasPyramid) {
-          parsed.push({ text: "Ficar craque em pirâmides.", completed: false });
-        }
-        return parsed;
+        return JSON.parse(saved);
       } catch (e) {
         console.error(e);
       }
     }
-    return defaultMetas;
+    return [
+      { text: "Corrigir 5 provas do ENEM.", completed: false },
+      { text: "Fazer duas redações nota 1000 avaliadas pelo ChatGPT.", completed: false },
+      { text: "Fazer todos os simulados do curso ENEM gratuito.", completed: false }
+    ];
   });
   
   useEffect(() => {
-    localStorage.setItem("enem_metas", JSON.stringify(metas));
+    localStorage.setItem("enem_metas_v2", JSON.stringify(metas));
   }, [metas]);
   const [cronograma, setCronograma] = useState<Cronograma>(() => {
     const saved = localStorage.getItem("enem_cronograma");
